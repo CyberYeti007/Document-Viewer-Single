@@ -1,0 +1,31 @@
+{
+  "name": "Next.js File Management",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/shyim/devcontainers-features/bun:0": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "prisma.prisma",
+        "bradlc.vscode-tailwindcss"
+      ],
+      "settings": {
+        "editor.formatOnSave": true
+      }
+    }
+  },
+
+  "forwardPorts": [3000, 5432, 27017],
+  
+  "postCreateCommand": "bun install && bunx prisma generate",
+  
+  "remoteUser": "vscode"
+}

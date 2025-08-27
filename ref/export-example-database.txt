@@ -1,0 +1,73 @@
+steps to export postgres contents from management system app to host pc
+
+
+- Enter Ctrl + Shft + P in VSCode and type in "Dev Container: Rebuild and Reopen in New Container
+
+- If you want to enter data into the database use this command in the VSCode terminal to open a web-based database viewer
+	- bunx prisma studio
+
+- If the other commands just aren't working try this in VSCode terminal
+	- bunx prisma migrate dev
+
+- Open Docker Desktop and open mtm-ms_devcontainer
+
+- Open the "db" image
+
+- Open the "Exec" tab
+
+- cd /var/lib/postgresql/data 
+
+- pg_dump -U postgres -d filemanager > example-database.sql
+
+In cmd prompt or PowerShell
+- docker ps (copy container id of postgres:16-alpine)
+
+- docker cp {container id}:{sql file path} {system file path}
+	- example: docker cp 47d1ebed280c:/var/lib/postgresql/data/example-database.sql {system file path}/example-database.sql
+
+
+Steps to import the sql file to the docker container
+
+
+
+- Enter Ctrl + Shft + P in VSCode and type in "Dev Container: Rebuild and Reopen in New Container
+
+- If you want to enter data into the database use this command in the VSCode terminal to open a web-based database viewer
+	- bunx prisma studio
+
+- If the other commands just aren't working try this in VSCode terminal
+	- bunx prisma migrate dev
+
+- Open Docker Desktop and open mtm-ms_devcontainer
+
+- Open the "db" image
+
+- Open the "Exec" tab
+
+- cd /var/lib/postgresql/data 
+
+In cmd prompt or PowerShell
+- docker ps (copy container id of postgres:16-alpine)
+
+- docker cp {system path of sql db} {container id}:{destination file path}
+	- example: docker cp {system path to sql db}/example-database.sql 47d1ebed280c:/var/lib/postgresql/data/example-database.sql
+
+In Docker 'db' container 'exec' tab
+- psql -U postgres -f example-database.sql filemanager
+
+Check by running 'bunx prisma studio' and seeing if the database has populated with data. If not, run 'bunx prisma migrate dev'
+
+
+
+
+Other Commands
+
+- psql -U postgres -d filemanager
+	- sends you to sql command line interface for accessing the database
+
+- psql -U postgres
+  \c filemanager
+	- does the same as above
+
+- select * from "user"
+	- necessary for reading user as user is a keyword of postgres and running the command without quotes will yield different results; all column names and table names with capital letters need quotes
