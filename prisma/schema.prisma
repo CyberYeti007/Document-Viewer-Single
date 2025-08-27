@@ -1,0 +1,492 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// =================== USER AND AUTH ===================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  firstName         String
+  lastName          String
+  password          String?
+  emailVerified     DateTime?
+  image             String?
+  aNumber           String?
+  costCenter        String?
+  jobTitle          String?
+  settings          Json? // JSON field for user settings/preferences
+  managementLevelId String? // management level of user
+
+  // Status flags
+  isActive   Boolean @default(true) // could be replaced by SailPoint auto-integration; active v deactivated account
+  isApprover Boolean @default(false) // can approve documents, etc.
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
+  // Access control
+  globalAccess Int     @default(5) // 5 = least security level
+  roleId       String?
+
+  // Relations
+  accounts             Account[]
+  sessions             Session[]
+  filesCreated         File[]               @relation("FileCreator")
+  filesOwned           File[]               @relation("FileOwner")
+  teamsOwned           Team[]
+  teams                TeamUser[]           @relation("TeamUsers")
+  teamUsersAdded       TeamUser[]           @relation("AddedByUser")
+  teamUsersEdited      TeamUser[]           @relation("PromotedByUser")
+  role                 Role?                @relation(fields: [roleId], references: [id])
+  managementLevel      ManagementLevel?     @relation(fields: [managementLevelId], references: [id], onDelete: SetNull)
+  permissionOverrides  UserPermission[]     @relation("UserOverrides")
+  grantedOverrides     UserPermission[]     @relation("GrantedByUser")
+  grantedTeamOverrides TeamUserPermission[]
+
+  @@index([email])
+  @@index([isApprover])
+  @@index([firstName])
+  @@index([lastName])
+  @@index([firstName, lastName])
+  @@index([createdAt(sort: Desc)])
+  @@index([roleId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// stores user sessions for authentication
+model Session {
+  id           String @id @default(cuid())
+  sessionToken String @unique
+  userId       String
+
+  // Timestamps
+  expires DateTime
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires(sort: Desc)])
+}
+
+// =================== ROLE-BASED ACCESS CONTROL ===================
+
+// contains a list of each permission
+model Permission {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  resource    String? // file, team, user
+  action      String? // create, read, update, delete, etc.
+  description String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  permissionOverrides UserPermission[]
+  rolePermissions     RolePermission[]
+  teamUserPermissions TeamUserPermission[]
+
+  @@unique([resource, action])
+  @@index([name])
+  @@index([resource])
+  @@index([action])
+}
+
+// bridge between User and Permission
+model UserPermission {
+  id           String  @id @default(cuid())
+  userId       String
+  permissionId String
+  granted      Boolean @default(true) // allows for explicit denial of a permission
+  grantedById  String? // user who granted this permission
+  reason       String? // reason for granting this permission
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  expiresAt DateTime? // optional expiration for the permission
+
+  // Relations
+  grantedBy  User?      @relation("GrantedByUser", fields: [grantedById], references: [id])
+  user       User       @relation("UserOverrides", fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
+}
+
+// bridge that allows for user-level overrides of permissions within a team
+model TeamUserPermission {
+  id           String  @id @default(cuid())
+  teamUserId   String
+  permissionId String
+  granted      Boolean @default(true) // allows for explicit denial of a permission
+  grantedById  String? // user who granted this permission
+  reason       String? // reason for granting this permission
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  expiresAt DateTime? // optional expiration for the permission
+
+  // Relations
+  grantedBy  User?      @relation(fields: [grantedById], references: [id])
+  teamUser   TeamUser   @relation(fields: [teamUserId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([teamUserId, permissionId])
+  @@index([teamUserId])
+  @@index([permissionId])
+}
+
+// bridge between Role and Permission
+model RolePermission {
+  id           String  @id @default(cuid())
+  roleId       String
+  permissionId String
+  granted      Boolean @default(true) // allows for explicit denial of a permission
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Relations
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+// list of preset roles that define permission sets to be given to users
+model Role {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users           User[]
+  teamUsers       TeamUser[]
+  rolePermissions RolePermission[]
+
+  @@index([name])
+}
+
+// probably dont need, but keeping for now
+// // bridge between User and Role
+// model UserRole { 
+//   id        String   @id @default(cuid())
+//   userId    String
+//   roleId    String
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+//   @@unique([userId, roleId])
+//   @@index([userId])
+//   @@index([roleId])
+// }
+
+// =================== TEAMS ===================
+
+// list of teams using the application; SSE, Qual, etc.
+model Team {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  ownerId     String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users   TeamUser[]
+  owner   User       @relation(fields: [ownerId], references: [id])
+  files   File[]
+  folders Folder[]
+  headers Header[]
+  forms   Form[]
+
+  @@index([name])
+  @@index([ownerId])
+}
+
+// bridge between Team and User
+// this is used to assign users to teams, define their role within, and manage team membership/adminship
+model TeamUser {
+  id          String  @id @default(cuid())
+  userId      String
+  teamId      String
+  roleId      String
+  accessLevel Int     @default(5) // 5 = least security level
+  isAdmin     Boolean @default(false)
+
+  // Timestamps
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime? // when the user left the team
+  updatedAt DateTime  @updatedAt
+
+  // Access History Information
+  addedById    String? // user who added this user to the team
+  promotedById String? // user who promoted this user to admin
+  addedBy      User?   @relation("AddedByUser", fields: [addedById], references: [id], onDelete: SetNull)
+  promotedBy   User?   @relation("PromotedByUser", fields: [promotedById], references: [id], onDelete: SetNull)
+
+  // Relations
+  role                Role?                @relation(fields: [roleId], references: [id])
+  user                User                 @relation("TeamUsers", fields: [userId], references: [id], onDelete: Cascade)
+  team                Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamUserPermissions TeamUserPermission[]
+
+  @@unique([userId, teamId])
+  @@index([userId])
+  @@index([teamId])
+  @@index([joinedAt(sort: Desc)])
+}
+
+// =================== JOBS AND POSITIONS ===================
+
+// list of levels within the company
+model ManagementLevel {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  rank        Int
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users User[]
+
+  @@index([id])
+  @@index([rank])
+}
+
+// probably dont need, but keeping for now
+// // bridge between User and Level
+// model UserLevel { 
+//   id        String   @id @default(cuid())
+//   userId    String
+//   levelId     String
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   level  Level  @relation(fields: [levelId], references: [id], onDelete: Cascade)
+
+//   @@unique([userId, levelId])
+//   @@index([userId])
+//   @@index([levelId])
+// }
+
+// =================== FILES ===================
+
+// stores all files uploaded by users
+model File {
+  id           String  @id @default(cuid())
+  // fileFamilyId String // used to group versions of the same file
+  filename     String
+  originalName String
+  description  String?
+  mimeType     String
+  size         Int
+  checksum     String // SHA-256 checksum of the file
+
+  // Storage
+  mongoId String @unique // ID of the file in the MongoDB GridFS storage
+
+  // Organization
+  creatorId String
+  ownerId   String
+  teamId    String
+  folderId  String
+  formId    String? // form used to create this file
+  headerId  String? // header applied to this file
+
+  // Metadata
+  metadata      Json?
+  tags          String   @default("") // tags for the file (comma-separated for SQLite)
+  securityLevel Int      @default(5) // security level of the file, 5 = least secure
+
+  // Versioning
+  version  Int     @default(1) // version of the file, incremented on each upload
+  isLatest Boolean @default(true) // is this the latest version of the file?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  creator User    @relation("FileCreator", fields: [creatorId], references: [id])
+  owner   User?   @relation("FileOwner", fields: [ownerId], references: [id])
+  team    Team?   @relation(fields: [teamId], references: [id])
+  folder  Folder? @relation(fields: [folderId], references: [id])
+  form    Form?   @relation(fields: [formId], references: [id])
+  header  Header? @relation(fields: [headerId], references: [id])
+
+  @@unique([folderId, filename]) // unique filename per folder
+  @@index([filename])
+  @@index([originalName])
+  @@index([mongoId])
+  @@index([ownerId])
+  @@index([folderId])
+  @@index([teamId])
+  @@index([formId])
+  @@index([headerId])
+  @@index([createdAt(sort: Desc)])
+  @@index([securityLevel])
+  @@index([tags]) // index for tag search
+}
+
+// model FileVersion {
+//   id          String   @id @default(cuid())
+//   fileId      String
+//   version     Int
+//   mongoId     String   @db.VarChar(12)
+//   size        BigInt
+//   checksum    String   @db.VarChar(64)
+//   changelog   String?
+//   createdById String
+
+//   createdAt   DateTime @default(now()) @db.Timestamptz
+
+//   file        File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+//   createdBy   User     @relation(fields: [createdById], references: [id])
+
+//   @@unique([fileId, version])
+//   @@index([fileId])
+//   @@index([createdById])
+// }
+
+// stores all folders in the system
+model Folder {
+  id          String  @id @default(cuid())
+  name        String
+  parentId    String
+  teamId      String
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children Folder[] @relation("FolderHierarchy")
+  files    File[]
+  team     Team     @relation(fields: [teamId], references: [id])
+
+  @@unique([name, parentId]) // unique folder name per parent folder
+  @@index([name])
+  @@index([parentId])
+  @@index([createdAt(sort: Desc)])
+  @@index([updatedAt(sort: Desc)])
+}
+
+// list of forms used in the creation of new files/documents
+// content is guesswork, subject to change
+model Form {
+  id          String  @id @default(cuid())
+  name        String
+  teamId      String
+  description String?
+  fields      Json // JSON field to store form fields and their properties
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  files File[]
+  team  Team   @relation(fields: [teamId], references: [id])
+
+  @@unique([name, teamId]) // unique form name per team
+  @@index([name])
+  @@index([teamId])
+}
+
+// list of headers that are applied to files/documents
+// content is guesswork, subject to change
+model Header {
+  id          String  @id @default(cuid())
+  name        String
+  teamId      String
+  description String?
+  fields      Json // JSON field to store header fields and their properties
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  files File[]
+  team  Team   @relation(fields: [teamId], references: [id])
+
+  @@unique([name, teamId]) // unique header name per team
+  @@index([name])
+  @@index([teamId])
+}
+
+// TODO notes
+// integrate db.timestamptz to handle timezones? no
+// do users only ever have one role? no, global roles and team roles
+// do users own folders, or do teams own folders? no one does
+// should we designate job title and job type as different? yes, level and title
+//
+// flesh out the Form model
+//     do we need a model for FormField? or is that just a JSON field in Form?
+// ask about name convention for users; name vs fname and lname
+// if every team has different role requirements, each with different levels of permissions, is it better to store roles in the Team model?
+//     or do we keep roles global and assign them to teams/users?
+//     if roles are global, how do we handle team-specific permissions?
+//     if roles are team-specific, how do we handle global permissions?
+//     what if one user has different roles across different teams?
+//     will users ever be on more than one team?
+// whats the name scheme for files? original and current? team name? etc.
+// possibly add json field submodel to define location of each field within a form
+// possibly add a model for JobTitle to define job titles and their descriptions based on SailPoint integration
+//     this would allow for calculatable permissions, but these are not in the plan for now
+// add lowest options for Level table "0 Other"
+// implement naming convention for files
+// discuss permissions per object (file, team, user, etc.)
+// do we need a provider table?
+// change column name in File from fileName to name
