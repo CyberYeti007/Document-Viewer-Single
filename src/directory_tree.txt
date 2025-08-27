@@ -1,0 +1,189 @@
+Folder PATH listing
+Volume serial number is BC09-54A6
+C:.
+|   directory_tree.txt
+|   middleware.ts
+|   
++---actions
+|       account.ts
+|       encrypt.ts
+|       requests.ts
+|       user.ts
+|       
++---app
+|   |   favicon.ico
+|   |   globals.css
+|   |   layout.tsx
+|   |   page.tsx
+|   |   providers.tsx
+|   |   
+|   +---api
+|   |   +---auth
+|   |   |   \---[...nextauth]
+|   |   |           route.ts
+|   |   |           
+|   |   +---files
+|   |   |   |   route.ts
+|   |   |   |   
+|   |   |   \---create
+|   |   |           route.ts
+|   |   |           
+|   |   +---folders
+|   |   |   |   route.ts
+|   |   |   |   
+|   |   |   \---[id]
+|   |   |       \---parent
+|   |   |               route.ts
+|   |   |               
+|   |   +---scim
+|   |   |       route.ts
+|   |   |       
+|   |   +---upload
+|   |   |   |   route.ts
+|   |   |   |   
+|   |   |   \---[filename]
+|   |   |           route.ts
+|   |   |           
+|   |   \---[id]
+|   |       \---process
+|   |               route.ts
+|   |               
+|   +---dashboard
+|   |   |   layout.tsx
+|   |   |   page.tsx
+|   |   |   
+|   |   +---admin
+|   |   |       page.tsx
+|   |   |       
+|   |   +---approve
+|   |   |       page.tsx
+|   |   |       
+|   |   +---audit
+|   |   |       page.tsx
+|   |   |       
+|   |   +---categories
+|   |   |       page.tsx
+|   |   |       
+|   |   +---compliance
+|   |   |       page.tsx
+|   |   |       
+|   |   +---documents
+|   |   |   |   page.tsx
+|   |   |   |   
+|   |   |   +---viewer
+|   |   |   |   \---[id]
+|   |   |   |           page.tsx
+|   |   |   |           
+|   |   |   \---[id]
+|   |   |           page.tsx
+|   |   |           
+|   |   +---error
+|   |   |       page.tsx
+|   |   |       
+|   |   +---files
+|   |   |   +---upload
+|   |   |   |       page.tsx
+|   |   |   |       
+|   |   |   \---[id]
+|   |   |           page.tsx
+|   |   |           
+|   |   +---reports
+|   |   |       page.tsx
+|   |   |       
+|   |   +---settings
+|   |   |       page.tsx
+|   |   |       
+|   |   \---users
+|   |           page.tsx
+|   |           
+|   \---login
+|           page.tsx
+|           
++---components
+|   |   card-template.tsx
+|   |   document-viewer-react-doc.tsx
+|   |   document-viewer.tsx
+|   |   role-config.tsx
+|   |   role-summary.tsx
+|   |   
+|   +---functional
+|   |       back-button.tsx
+|   |       file-explorer.tsx
+|   |       file-uploader.tsx
+|   |       
+|   +---layout
+|   |       loading-icon.tsx
+|   |       loading-screen.tsx
+|   |       quick-action-bar.tsx
+|   |       side-bar.tsx
+|   |       status-bar.tsx
+|   |       table-card.tsx
+|   |       
+|   \---ui
+|           accordion.tsx
+|           alert-dialog.tsx
+|           alert.tsx
+|           aspect-ratio.tsx
+|           avatar.tsx
+|           badge.tsx
+|           breadcrumb.tsx
+|           button.tsx
+|           calendar.tsx
+|           card.tsx
+|           carousel.tsx
+|           chart.tsx
+|           checkbox.tsx
+|           collapsible.tsx
+|           command.tsx
+|           context-menu.tsx
+|           dialog.tsx
+|           drawer.tsx
+|           dropdown-menu.tsx
+|           form.tsx
+|           hover-card.tsx
+|           input-otp.tsx
+|           input.tsx
+|           label.tsx
+|           menubar.tsx
+|           navigation-menu.tsx
+|           pagination.tsx
+|           popover.tsx
+|           progress.tsx
+|           radio-group.tsx
+|           resizable.tsx
+|           scroll-area.tsx
+|           select.tsx
+|           separator.tsx
+|           sheet.tsx
+|           sidebar.tsx
+|           skeleton.tsx
+|           slider.tsx
+|           sonner.tsx
+|           switch.tsx
+|           table.tsx
+|           tabs.tsx
+|           textarea.tsx
+|           toggle-group.tsx
+|           toggle.tsx
+|           tooltip.tsx
+|           
++---hooks
+|       use-mobile.ts
+|       
++---lib
+|   |   auth.config.ts
+|   |   auth.ts
+|   |   file-data.ts
+|   |   page-data.ts
+|   |   utils.ts
+|   |   
+|   +---db
+|   |       mongodb.ts
+|   |       postgres.ts
+|   |       
+|   \---schemas
+|           index.ts
+|           
+\---types
+        gridfs.ts
+        
